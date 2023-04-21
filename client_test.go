@@ -4,9 +4,10 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -61,13 +62,11 @@ func Test_newClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newClient(tt.args.ctx, tt.args.token, tt.args.baseURL, tt.args.version, tt.args.httpClient)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("newClient() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newClient() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -117,13 +116,11 @@ func Test_client_request(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.c.request(tt.args.method, tt.args.pathURL, tt.args.body)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("client.request() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-			if got != nil && tt.want != nil && !reflect.DeepEqual(got.URL, tt.want.URL) {
-				t.Errorf("client.request() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -147,14 +144,12 @@ func Test_client_do(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.c.do(tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("client.do() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-
-			if !tt.wantErr && got.StatusCode != 200 {
-				t.Errorf("client.do() = %v, want %v", got.StatusCode, 200)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusOK, got.StatusCode)
 		})
 	}
 }
@@ -194,13 +189,11 @@ func Test_client_getResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotI, err := tt.c.getResponse(tt.args.req, tt.args.obj)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("client.getResponse() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-			if !reflect.DeepEqual(gotI, tt.wantI) {
-				t.Errorf("client.getResponse() = %v, want %v", gotI, tt.wantI)
-			}
+			assert.Equal(t, tt.wantI, gotI)
 		})
 	}
 }

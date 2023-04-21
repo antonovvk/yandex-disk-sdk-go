@@ -9,8 +9,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"reflect"
+	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -18,6 +21,7 @@ var (
 	testValidToken = Token{
 		AccessToken: os.Getenv("YANDEX_TOKEN"),
 	}
+	testAppFolder    = os.Getenv("YANDEX_DISK_APP_FOLDER")
 	testInvalidToken = Token{
 		AccessToken: "AQA0AA00qEYz00WXA7olo",
 	}
@@ -46,13 +50,11 @@ func TestNewYaDisk(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewYaDisk(tt.args.ctx, tt.args.client, tt.args.token)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewYaDisk() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewYaDisk() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -74,13 +76,12 @@ func Test_yandexDisk_GetDisk(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotD, err := tt.yaDisk.GetDisk(tt.args.fields)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("yandexDisk.GetDisk() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Expecting error")
 				return
 			}
-			if !reflect.DeepEqual(gotD, tt.wantD) {
-				t.Errorf("yandexDisk.GetDisk() = %v, want %v", gotD, tt.wantD)
-			}
+			gotD.IsPaid = false // We may be testing on paid account
+			assert.Equal(t, tt.wantD, gotD)
 		})
 	}
 }
@@ -89,52 +90,33 @@ func Test_yandexDisk_PerformUpload(t *testing.T) {
 	fileName := randStringBytes(10)
 	createFile(fileName, rand.Intn(100)*1e4)
 	defer removeFile(fileName)
-	link, err := testYaDisk.GetResourceUploadLink("/test/"+fileName, nil, true)
-	if err != nil {
-		t.Errorf("yandexDisk.GetResourceUploadLink() error = %v", err)
-	}
-	pu, err := testYaDisk.PerformUpload(link, openFile(fileName))
-	if err != nil {
-		t.Errorf("testYaDisk.PerformPartialUpload() return error = %v", err)
-	}
+	link, err := testYaDisk.GetResourceUploadLink(path.Join(testAppFolder, fileName), nil, true)
+	require.NoError(t, err)
 
-	if pu == nil {
-		t.Errorf("testYaDisk.PerformPartialUpload() return nil PerformUpload = %v", err)
-	}
+	pu, err := testYaDisk.PerformUpload(link, openFile(fileName))
+	require.NoError(t, err)
+	require.NotNil(t, pu)
 
 	status, err := testYaDisk.GetOperationStatus(link.OperationID, nil)
-	if err != nil {
-		t.Errorf("testYaDisk.GetOperationStatus() return error = %v", err)
-	}
-	if status.Status != "success" {
-		t.Errorf("testYaDisk.GetOperationStatus() return error = %v", err)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "success", status.Status)
 }
 
 func Test_yandexDisk_PerformPartialUpload(t *testing.T) {
 	fileName := randStringBytes(10) + "_partial"
 	createFile(fileName, rand.Intn(100)*1e4)
 	defer removeFile(fileName)
-	link, err := testYaDisk.GetResourceUploadLink("/test/"+fileName, nil, true)
+	link, err := testYaDisk.GetResourceUploadLink(path.Join(testAppFolder, fileName), nil, true)
 	if err != nil {
 		t.Errorf("yandexDisk.GetResourceUploadLink() error = %v", err.Error())
 	}
 	pu, err := testYaDisk.PerformPartialUpload(link, openFile(fileName), rand.Int63n(100)*1e3)
-	if err != nil {
-		t.Errorf("testYaDisk.PerformPartialUpload() return error = %v", err.Error())
-	}
-
-	if pu == nil {
-		t.Errorf("testYaDisk.PerformPartialUpload() return nil PerformUpload")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, pu)
 
 	status, err := testYaDisk.GetOperationStatus(link.OperationID, nil)
-	if err != nil {
-		t.Errorf("testYaDisk.GetOperationStatus() return error = %v", err.Error())
-	}
-	if status.Status != "success" {
-		t.Errorf("testYaDisk.GetOperationStatus() return bad status = %v", status.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "success", status.Status)
 }
 
 func createFile(name string, size int) {

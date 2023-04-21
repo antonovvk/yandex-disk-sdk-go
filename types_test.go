@@ -1,6 +1,10 @@
 package yadisk
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func Test_responseInfo_setResponseInfo(t *testing.T) {
 	type args struct {
@@ -33,9 +37,7 @@ func TestError_Error(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.e.Error(); got != tt.want {
-				t.Errorf("Error.Error() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, tt.e.Error())
 		})
 	}
 }
@@ -55,9 +57,12 @@ func TestPerformUpload_handleError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.pu.handleError(tt.args.ri); (err != nil) != tt.wantErr {
-				t.Errorf("PerformUpload.handleError() error = %v, wantErr %v", err, tt.wantErr)
+			err := tt.pu.handleError(tt.args.ri)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
 			}
+			assert.NoError(t, err)
 		})
 	}
 }
