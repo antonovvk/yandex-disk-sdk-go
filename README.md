@@ -43,11 +43,11 @@ Documentation
 Create new instance Yandex.Disk
 
 ```go
-yaDisk,err := yadisk.NewYaDisk(ctx.Background(),http.DefaultClient, &yadisk.Token{AccessToken: "YOUR_TOKEN"})
+yaDisk, err := yadisk.NewYaDisk(ctx.Background(),http.DefaultClient, &yadisk.Token{AccessToken: "YOUR_TOKEN"})
 if err != nil {
     panic(err.Error())
 }
-disk,err := yaDisk.GetDisk([]string{})
+disk, err := yaDisk.GetDisk([]string{})
 if err != nil {
     // If response get error
     e, ok := err.(*yadisk.Error)
@@ -58,6 +58,38 @@ if err != nil {
     // e.Message
 }
 ```
+
+Upload file to Yandex.Disk
+```go
+link, err := yaDisk.GetResourceUploadLink("/Apps/YourAppName/file", nil, true)
+if err != nil {
+    panic(err.Error())
+}
+
+pu, err := yaDisk.PerformUpload(link, bytes.NewBuffer([]byte("DATA BYTES")))
+if err != nil {
+    panic(err.Error())
+}
+
+status, err := yaDisk.GetOperationStatus(link.OperationID, nil)
+if "success" != status.Status {
+    panic(status.Status)
+}
+```
+
+Download file from Yandex.Disk
+```go
+dl, err := yaDisk.GetResourceDownloadLink("/Apps/YourAppName/file", nil)
+if err != nil {
+    panic(err.Error())
+}
+
+data, err := yaDisk.PerformDownload(dl)
+if err != nil {
+    panic(err.Error())
+}
+```
+
 
 Testing
 -------------

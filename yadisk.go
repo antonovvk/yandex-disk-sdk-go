@@ -46,6 +46,17 @@ func (yad *yandexDisk) GetDisk(fields []string) (d *Disk, e error) {
 	return
 }
 
+func (yad *yandexDisk) PerformDownload(ur *Link) (data []byte, e error) {
+	req, e := http.NewRequest(http.MethodGet, ur.Href, nil)
+	if e != nil {
+		return
+	}
+	if _, e := yad.client.getResponse(req, &data); e != nil {
+		return nil, e
+	}
+	return data, nil
+}
+
 // This custom method to upload data by link.
 func (yad *yandexDisk) PerformUpload(ur *ResourceUploadLink, data *bytes.Buffer) (pu *PerformUpload, e error) {
 	req, e := http.NewRequest(ur.Method, ur.Href, data)

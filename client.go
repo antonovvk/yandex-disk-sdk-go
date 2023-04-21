@@ -88,7 +88,13 @@ func (c *client) getResponse(req *http.Request, obj interface{}) (i *responseInf
 	if e != nil {
 		return
 	}
-	if len(body) > 0 {
+	if len(body) == 0 {
+		return i, nil
+	}
+	switch t := obj.(type) {
+	case *[]byte:
+		*t = body
+	default:
 		err := new(Error)
 		e = json.Unmarshal(body, &err)
 		if e != nil {

@@ -113,6 +113,10 @@ type YaDisk interface {
 	// Get the status of an asynchronous operation.
 	GetOperationStatus(operationID string, fields []string) (s *OperationStatus, e error)
 
+	// Download file by link
+
+	PerformDownload(ur *Link) (data []byte, e error)
+
 	// Custom upload
 
 	// This custom method to upload data by link.

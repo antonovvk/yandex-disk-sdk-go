@@ -88,9 +88,11 @@ func Test_yandexDisk_GetDisk(t *testing.T) {
 
 func Test_yandexDisk_PerformUpload(t *testing.T) {
 	fileName := randStringBytes(10)
-	createFile(fileName, rand.Intn(100)*1e4)
+	canon := createFile(fileName, rand.Intn(100)*1e4)
 	defer removeFile(fileName)
-	link, err := testYaDisk.GetResourceUploadLink(path.Join(testAppFolder, fileName), nil, true)
+
+	filePath := path.Join(testAppFolder, fileName)
+	link, err := testYaDisk.GetResourceUploadLink(filePath, nil, true)
 	require.NoError(t, err)
 
 	pu, err := testYaDisk.PerformUpload(link, openFile(fileName))
@@ -100,6 +102,13 @@ func Test_yandexDisk_PerformUpload(t *testing.T) {
 	status, err := testYaDisk.GetOperationStatus(link.OperationID, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "success", status.Status)
+
+	dl, err := testYaDisk.GetResourceDownloadLink(filePath, nil)
+	require.NoError(t, err)
+
+	data, err := testYaDisk.PerformDownload(dl)
+	require.NoError(t, err)
+	assert.Equal(t, canon, data)
 }
 
 func Test_yandexDisk_PerformPartialUpload(t *testing.T) {
@@ -119,7 +128,7 @@ func Test_yandexDisk_PerformPartialUpload(t *testing.T) {
 	assert.Equal(t, "success", status.Status)
 }
 
-func createFile(name string, size int) {
+func createFile(name string, size int) []byte {
 	f, err := os.Create(name)
 	if err != nil {
 		panic(err)
@@ -130,10 +139,11 @@ func createFile(name string, size int) {
 			panic(err)
 		}
 	}()
-	_, err = f.WriteString(randStringBytes(size))
-	if err != nil {
+	data := randStringBytes(size)
+	if _, err := f.WriteString(data); err != nil {
 		panic(err)
 	}
+	return []byte(data)
 }
 
 func removeFile(name string) {
